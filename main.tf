@@ -29,6 +29,13 @@ resource "aws_security_group" "main" {
 
 }
 
+resource "aws_docdb_cluster_parameter_group" "main" {
+  family      = var.engine_family
+  name        = "${local.name_prefix}-pg"
+  description = "${local.name_prefix}-pg"
+  tags = merge(local.tags, {Name = "${local.name_prefix}-pg"})
+}
+
 resource "aws_docdb_cluster" "main" {
   cluster_identifier      = "${local.name_prefix}-cluster"
   engine                  = "docdb"
@@ -38,5 +45,17 @@ resource "aws_docdb_cluster" "main" {
   preferred_backup_window = var.preferred_backup_window
   skip_final_snapshot     = var.skip_final_snapshot
   db_subnet_group_name = aws_docdb_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.main.id]
+  db_cluster_parameter_group_name = aws_docdb_cluster_parameter_group.main.name
+  tags = merge(local.tags, {Name = "${local.name_prefix}-cluster"})
+  engine_version              = var.engine_version
+
+}
+
+resource "aws_docdb_cluster_instance" "main" {
+  count = var.instance_count
+  identifier = "${local.name_prefix}-cluster-instance-${count.index+1}"
+  cluster_identifier = aws_docdb_cluster.main.id
+  instance_class     = var.instance_class
 }
 
